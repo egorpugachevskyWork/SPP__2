@@ -15,6 +15,9 @@ namespace MainPart
         private List<Type> _types;
 
         private List<IValueGenerator> _generators;
+
+        private FakerConfig _config;
+
         public T Create<T>()
         {
             return (T) Create(typeof(T));
@@ -23,11 +26,11 @@ namespace MainPart
 
         //TO DO
         //1. Load all generators from current Assembly +
-        //2. Try to generate value from this generators+ and try to generate from user generator and from dll methods
-        //3. Try to generate not dto with recursion
+        //2. Try to generate value from this generators+ and try to generate from user generator+ and from dll methods
+        //3. Try to generate not dto with recursion+
         //3_a. Forget about loading methods from other dlls
-        //3a. First with user generators
-        //3b. Second with library generators
+        //3a. First with user generators+
+        //3b. Second with library generators+
         public object Create(Type t)
         {
             object obj = null;
@@ -60,14 +63,13 @@ namespace MainPart
         {
             return _types.Contains(t);
         }
-        //find constructors and create object(USer and Lib+)
-        //fill fields (User then Lib+) separate
-        //fill properties (USer then lib+) separate
         private object CreateClass(Type t)
         {
             object obj = CreateInstanceOfClass(t);
             FillFields(obj, t);
+            FillUserFields(obj, t);
             FillProperties(obj, t);
+            FillUserProperties(obj , t);
 
             return obj;
         }
@@ -82,7 +84,24 @@ namespace MainPart
                 var fieldValue = field.GetValue(obj);
                 if (fieldValue == null || fieldValue.Equals(GetDefaultValue(field.FieldType)))
                 {
+
+
                     field.SetValue(obj, Create(field.FieldType));
+                }
+            }
+        }
+
+        private void FillUserFields(object obj, Type t)
+        {
+            var fields = t.GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (var field in fields)
+            {
+
+                if (_config.CheckGenerator(t, field.Name))
+                {
+                    var foundUserGen = _config.ObtaionGenerator(t, field.Name);
+                    field.SetValue(obj, foundUserGen.Generate(field.FieldType, _context));
                 }
             }
         }
@@ -96,6 +115,20 @@ namespace MainPart
                 var propertyValue = property.GetValue(obj);
                 if (property.SetMethod is not null && (propertyValue == null || propertyValue.Equals(GetDefaultValue(property.PropertyType)))){
                     property.SetMethod.Invoke(obj, new object[] { Create(property.PropertyType) });
+                }
+            }
+        }
+        private void FillUserProperties(object obj, Type t)
+        {
+            var properties = t.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach(var property in properties)
+            {
+
+                if (property.SetMethod is not null && _config.CheckGenerator(t, property.Name))
+                {
+                    var foundUserGen = _config.ObtaionGenerator(t, property.Name);
+                    property.SetMethod.Invoke(obj, new object[] { foundUserGen.Generate(property.PropertyType, _context) });
                 }
             }
         }
@@ -114,7 +147,7 @@ namespace MainPart
             object obj = null;
             foreach (var info in infoContructors)
             {
-                object[] parametrs = GetParametrs(info);
+                object[] parametrs = GetParametrs(info, t);
                 obj = info.Invoke(parametrs);
                 if (obj != null)
                     break;
@@ -123,7 +156,7 @@ namespace MainPart
             return obj;
         }
 
-        private object[] GetParametrs(ConstructorInfo info)
+        private object[] GetParametrs(ConstructorInfo info, Type classType)
         {
             if (info.GetParameters().Length == 0)
                 return null;
@@ -132,12 +165,31 @@ namespace MainPart
             int i = 0;
             foreach(var param in info.GetParameters())
             {
-                //user generator first
+                //user generator first+
                 //generator second +
                 //dll generator
-                var foundLibGen = _generators.Find(g => g.CanGenerate(param.ParameterType));
-                parametrs[i] = foundLibGen?.Generate(param.ParameterType, _context) ?? Create(param.ParameterType);
+                var paramName = ""; 
+                var field = classType.GetField(param.Name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                var property = classType.GetProperty(param.Name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                if ((field != null && field.FieldType == param.ParameterType) ||
+                    (property != null && property.PropertyType == param.ParameterType))
+                {
+                    paramName = (field != null) ? field.Name : property.Name;
+                }
+
+                if (_config.CheckGenerator(classType, paramName))
+                {
+                    var foundUserGen = _config.ObtaionGenerator(classType, paramName);
+                    parametrs[i] = foundUserGen.Generate(param.ParameterType, _context);
+                }
+                else 
+                { 
+                    var foundLibGen = _generators.Find(g => g.CanGenerate(param.ParameterType));
+                    parametrs[i] = foundLibGen?.Generate(param.ParameterType, _context) ?? Create(param.ParameterType);
+                    
+                }
                 i++;
+
             }
 
             return parametrs;
@@ -150,6 +202,11 @@ namespace MainPart
             GetLibraryGenerators();
             _types = new List<Type>();
             _context = new GeneratorContext(this, new Random());
+        }
+
+        public Faker(FakerConfig config) : this()
+        {
+            _config = config;
         }
     }
 }

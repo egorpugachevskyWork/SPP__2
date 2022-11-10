@@ -10,6 +10,10 @@ namespace Example
     {
         private uint _nope;
 
+        public int hello;
+
+        public string Name { get; set; }
+
         public C C { get; set; }
 
         public B() { }
