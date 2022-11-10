@@ -30,17 +30,18 @@ namespace MainPart
         //3b. Second with library generators
         public object Create(Type t)
         {
-            object obj = _generators.Find(g => g.CanGenerate(t))?.Generate(t);
+            object obj = null;
+            obj = _generators.Find(g => g.CanGenerate(t))?.Generate(t, _context);
 
-            if ((obj == null || obj.Equals(GetDefaultValue(t)) && !t.IsPrimitive){
+            if ((obj == null || obj.Equals(GetDefaultValue(t))) && !t.IsPrimitive && !isTypeGenerated(t)){
                 //Trying to fill not DTO type
                 _types.Add(t);
-                //Fill class
+                obj = CreateInstanceOfClass(t);
                 _types.Remove(t);
             }
             
 
-            return new object();
+            return obj ?? GetDefaultValue(t);
         }
 
         private void GetLibraryGenerators()
@@ -55,15 +56,49 @@ namespace MainPart
             return t.IsValueType ? Activator.CreateInstance(t) : null;
         }
 
-        //find constructors and create object+
-        //fill fields
-        //fill properties
+        private bool isTypeGenerated(Type t)
+        {
+            return _types.Contains(t);
+        }
+        //find constructors and create object(USer and Lib+)
+        //fill fields (User then Lib+) separate
+        //fill properties (USer then lib+) separate
         private object CreateClass(Type t)
         {
             object obj = CreateInstanceOfClass(t);
-            
+            FillFields(obj, t);
+            FillProperties(obj, t);
+
+            return obj;
         }
 
+
+        private void FillFields(object obj, Type t)
+        {
+            var fields = t.GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (var field in fields)
+            {
+                var fieldValue = field.GetValue(obj);
+                if (fieldValue == null || fieldValue.Equals(GetDefaultValue(field.FieldType)))
+                {
+                    field.SetValue(obj, Create(field.FieldType));
+                }
+            }
+        }
+
+        private void FillProperties(object obj, Type t)
+        {
+            var properties = t.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach(var property in properties)
+            {
+                var propertyValue = property.GetValue(obj);
+                if (property.SetMethod is not null && (propertyValue == null || propertyValue.Equals(GetDefaultValue(property.PropertyType)))){
+                    property.SetMethod.Invoke(obj, new object[] { Create(property.PropertyType) });
+                }
+            }
+        }
         private object CreateInstanceOfClass(Type t)
         {
             var infoContructors = t.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
@@ -107,6 +142,8 @@ namespace MainPart
 
             return parametrs;
         }
+
+        
 
         public Faker()
         {
