@@ -36,7 +36,7 @@ namespace MainPart
             if ((obj == null || obj.Equals(GetDefaultValue(t))) && !t.IsPrimitive && !isTypeGenerated(t)){
                 //Trying to fill not DTO type
                 _types.Add(t);
-                obj = CreateInstanceOfClass(t);
+                obj = CreateClass(t);
                 _types.Remove(t);
             }
             
@@ -106,7 +106,7 @@ namespace MainPart
             {
                 if (c1.GetParameters().Length > c2.GetParameters().Length)
                     return -1;
-                else if (c1.GetParameters().Length > c2.GetParameters().Length)
+                else if (c1.GetParameters().Length < c2.GetParameters().Length)
                     return 1;
                 return 0;
             });
@@ -148,6 +148,7 @@ namespace MainPart
         public Faker()
         {
             GetLibraryGenerators();
+            _types = new List<Type>();
             _context = new GeneratorContext(this, new Random());
         }
     }

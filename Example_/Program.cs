@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MainPart;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +11,8 @@ namespace Example
     {
         public static void Main(string[] args)
         {
-            var a = new A(123);
+            var faker = new Faker();
+            var a = faker.Create<A>();
 
             Console.WriteLine();
         }
