@@ -20,15 +20,18 @@ namespace Example
 
         public int hello;
 
+        private string _forDll;
+
         public List<List<int>> Numbers { get; set; }
 
         private A() { }
-        public A(short tel, int age, string name, List<List<int>> numbers)
+        public A(short tel, int age, string name, List<List<int>> numbers, string forDll)
         {
             Age = age;
             Name = name;    
             _tel = tel; 
             Numbers = numbers;
+            _forDll = forDll;
         }
     }
 }

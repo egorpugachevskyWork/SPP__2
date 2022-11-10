@@ -18,26 +18,25 @@ namespace MainPart
 
         private FakerConfig _config;
 
+        private string _nameDll = "RemoteLib1.dll";
+
+        private string[] _namesClass = new string[] { "RemoteLib1.IntGenerator", "RemoteLib1.StringGenerator" };
+
+
         public T Create<T>()
         {
             return (T) Create(typeof(T));
         }
 
-
-        //TO DO
-        //1. Load all generators from current Assembly +
-        //2. Try to generate value from this generators+ and try to generate from user generator+ and from dll methods
-        //3. Try to generate not dto with recursion+
-        //3_a. Forget about loading methods from other dlls
-        //3a. First with user generators+
-        //3b. Second with library generators+
         public object Create(Type t)
         {
             object obj = null;
-            obj = _generators.Find(g => g.CanGenerate(t))?.Generate(t, _context);
+
+            obj =TryRemoteLibraryGenerators(t);
+
+            obj = obj ?? _generators.Find(g => g.CanGenerate(t))?.Generate(t, _context);
 
             if ((obj == null || obj.Equals(GetDefaultValue(t))) && !t.IsPrimitive && !isTypeGenerated(t)){
-                //Trying to fill not DTO type
                 _types.Add(t);
                 obj = CreateClass(t);
                 _types.Remove(t);
@@ -47,6 +46,32 @@ namespace MainPart
             return obj ?? GetDefaultValue(t);
         }
 
+        private object TryRemoteLibraryGenerators(Type appropriateType)
+        {
+            var asm = Assembly.LoadFrom(_nameDll);
+            var types = asm.GetTypes();
+            object obj = null;
+            foreach (var type in types)
+            {
+                if (_namesClass.Contains(type.FullName))
+                {
+                    var method = type.GetMethod("CanGenerate", BindingFlags.Public  | BindingFlags.Static);
+                    if (method is not null && (bool?)method.Invoke(null, new object[] { appropriateType}) == true)
+                    {
+                        var generateMethod = type.GetMethod("Generate", BindingFlags.Public | BindingFlags.Static);
+                        if(generateMethod is not null)
+                        {
+                            obj = generateMethod.Invoke(null, new object[] { appropriateType });
+                            break;
+                        }
+                    }
+                    
+                }
+            }
+
+            return obj;
+
+        }
         private void GetLibraryGenerators()
         {
             _generators = Assembly.GetExecutingAssembly().GetTypes()
@@ -84,8 +109,6 @@ namespace MainPart
                 var fieldValue = field.GetValue(obj);
                 if (fieldValue == null || fieldValue.Equals(GetDefaultValue(field.FieldType)))
                 {
-
-
                     field.SetValue(obj, Create(field.FieldType));
                 }
             }
@@ -165,9 +188,6 @@ namespace MainPart
             int i = 0;
             foreach(var param in info.GetParameters())
             {
-                //user generator first+
-                //generator second +
-                //dll generator
                 var paramName = ""; 
                 var field = classType.GetField(param.Name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
                 var property = classType.GetProperty(param.Name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
@@ -184,8 +204,7 @@ namespace MainPart
                 }
                 else 
                 { 
-                    var foundLibGen = _generators.Find(g => g.CanGenerate(param.ParameterType));
-                    parametrs[i] = foundLibGen?.Generate(param.ParameterType, _context) ?? Create(param.ParameterType);
+                    parametrs[i] = Create(param.ParameterType);
                     
                 }
                 i++;
