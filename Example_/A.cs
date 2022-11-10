@@ -20,10 +20,10 @@ namespace Example
 
         public int hello;
 
-        public List<int> Numbers { get; set; };
+        public List<List<int>> Numbers { get; set; }
 
         private A() { }
-        public A(short tel, int age, string name, List<int> numbers)
+        public A(short tel, int age, string name, List<List<int>> numbers)
         {
             Age = age;
             Name = name;    

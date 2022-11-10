@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,12 +11,22 @@ namespace MainPart.Generators.LibraryGenerators
     {
         bool IValueGenerator.CanGenerate(Type type)
         {
-            return type == typeof(bool);
+            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>);
         }
 
         object IValueGenerator.Generate(Type typeToGenerate, GeneratorContext context)
         {
-            return context.Random.Next(short.MinValue, short.MaxValue) > (short)(0.8 * short.MaxValue);
+            var length = context.Random.Next(1, 15);
+            var genericArgs = typeToGenerate.GenericTypeArguments;
+            var listType = typeof(List<>).MakeGenericType(genericArgs);
+            var resultList = (IList)Activator.CreateInstance(listType);
+
+            for (int i = 0; i< length; i++)
+            {
+                resultList.Add(context.Faker.Create(genericArgs[0]));
+            }
+
+            return resultList;
         }
     }
 }
