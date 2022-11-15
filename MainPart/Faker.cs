@@ -18,7 +18,7 @@ namespace MainPart
 
         private FakerConfig _config;
 
-        private string _nameDll = "RemoteLib1.dll";
+        private string _nameDll = "D:\\Studying\\third_course\\СПП\\lab2_final\\RemoteLib1\\bin\\Debug\\net6.0\\RemoteLib1.dll";
 
         private string[] _namesClass = new string[] { "RemoteLib1.IntGenerator", "RemoteLib1.StringGenerator" };
 
@@ -32,7 +32,14 @@ namespace MainPart
         {
             object obj = null;
 
-            obj =TryRemoteLibraryGenerators(t);
+            try
+            {
+                obj = TryRemoteLibraryGenerators(t);
+            }
+            catch (Exception ex)
+            {
+                obj = null;
+            }
 
             obj = obj ?? _generators.Find(g => g.CanGenerate(t))?.Generate(t, _context);
 

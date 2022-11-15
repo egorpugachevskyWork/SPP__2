@@ -15,7 +15,7 @@ namespace MainPart.Generators.LibraryGenerators
 
         object IValueGenerator.Generate(Type typeToGenerate, GeneratorContext context)
         {
-            return context.Random.Next(short.MinValue, short.MaxValue) > (short)(0.8 * short.MaxValue);
+            return context.Random.Next(short.MinValue / 2, short.MaxValue) > (short)(0.005 * short.MaxValue);
         }
     }
 }

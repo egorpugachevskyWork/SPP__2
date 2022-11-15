@@ -15,10 +15,9 @@ namespace MainPart.Generators.LibraryGenerators
 
         object IValueGenerator.Generate(Type typeToGenerate, GeneratorContext context)
         {
-            var amountOfDays = (short)context.Random.Next(short.MinValue, short.MaxValue);
+            var amountOfDays = (short)context.Random.Next(1, short.MaxValue);
             var resultDate = new DateTime(1990, 1, 1);
-            resultDate.AddDays(amountOfDays);   
-            return resultDate;
+            return resultDate.AddDays(amountOfDays);
         }
     }
 }

@@ -13,11 +13,19 @@ namespace Example
         public int Id { get; set; }
 
         public int Age { get; }
-
         public string Name { get;  }
 
         private short _tel;
 
+        public bool Boool { get; set; }
+
+        public double Double { get; set; }
+
+        public DateTime dateTime;
+
+        public char charValue;
+
+        //For dll
         public int hello;
 
         private string _forDll;

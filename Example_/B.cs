@@ -8,9 +8,11 @@ namespace Example
 {
     public class B
     {
-        private uint _nope;
+        public uint _nope;
 
         public int hello;
+
+        public string otherName;
 
         public string Name { get; set; }
 

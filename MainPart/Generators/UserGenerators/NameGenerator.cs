@@ -8,7 +8,7 @@ namespace MainPart.Generators.UserGenerators
 {
     public class NameGenerator : IUserGenerator
     {
-        private string[] _names = new string[] { "Egor", "Maria", "Danila", "Robbin", "Halacost" };
+        public string[] _names = new string[] { "Egor", "Maria", "Danila", "Robbin", "Halacost" };
 
         bool IUserGenerator.CanGenerate(Type type)
         {
